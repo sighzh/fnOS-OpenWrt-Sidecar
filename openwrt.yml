@@ -1,0 +1,32 @@
+# fnOS OpenWrt 旁路由 Docker Compose
+# 使用前请确认：
+#   1. 将 parent: enp2s0 替换为你的实际物理网卡名（ip link show 查看）
+#   2. 将 192.168.1.2/24 替换为你想分配给旁路由的 IP
+#   3. 将 gateway: 192.168.1.1 替换为你的主路由 IP
+
+services:
+  openwrt:
+    image: sulinggg/openwrt:x86_64
+    container_name: openwrt
+    restart: unless-stopped
+    privileged: true
+    networks:
+      macvlan_net:
+        ipv4_address: 192.168.1.2
+    volumes:
+      - ./openwrt/etc:/etc
+    # 容器启动后开启 IP 转发
+    command: >
+      sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward &&
+             /sbin/init"
+
+networks:
+  macvlan_net:
+    driver: macvlan
+    driver_opts:
+      parent: enp2s0        # ← 替换为你的物理网卡名
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1   # ← 替换为你的主路由 IP
+          ip_range: 192.168.1.2/32  # 只分配这一个 IP 给 OpenWrt
